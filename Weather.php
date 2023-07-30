@@ -71,10 +71,45 @@ h1{
   font-weight: 700;
   
 }
+h2{
+  text-align: center;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
 input{
   width: 350px;
   padding: 5px;
 }
+#table-container {
+            margin: 20px auto;
+            width: 80%;
+            
+        }
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            margin-left: 50px;
+            margin-bottom: 50px;
+           
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            color: black;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            width: 40px;
+            height: 40px;
+        }
+        #current-info {
+            margin: 20px auto;
+            width: 80%;
+            text-align: center;
+        }
 </style>
 
 
@@ -82,28 +117,97 @@ input{
   </head>
   <body>
     <div class="container">
-      <h1>Search Countrywide Weather</h1>
-      <form action="" method="GET">
-         <p><label for="city">ENTER YOUR CITY</label></p>
-         <p><input type="text" name="city" id="city"placeholder="City Name"></p>
-         <button type="submit" name="submit" class="btn btn-success">Submit Now</button>
-         <div class="output">
-               <?php 
-              if (!empty($weather)) {
-                echo '<div class="alert alert-success" role="alert">
-                '. $weather.'
-                </div>';
-              } 
-              if (!empty($error)){
-                echo '<div class="alert alert-dark" role="alert">
-                '. ($error="Your input field is empty").'               </div>';
-
-              }
-               
-                ?>
-         </div> 
+    <h1>Weather Forecast</h1>
+    <form action="" method="POST">
+        <label for="city">Enter City Name:</label>
+        <input type="text" name="city" id="city" placeholder="city name eg: nairobi " required><br><br>
+        <button type="submit" name="submit" class="btn btn-success">Get forecast</button><br>
+         
         </form>
     </div>
+
     
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Process the form submission
+        if (isset($_POST['city'])) {
+            $city = urlencode($_POST['city']);
+            $apiKey = '6134fabc0c4a23e6eac7bddae4047f9a';
+            $apiUrl = "https://api.openweathermap.org/data/2.5/forecast?q=$city,ke&appid=$apiKey&cnt=40";
+            
+            // Fetch weather data from API
+            $response = file_get_contents($apiUrl);
+            $data = json_decode($response, true);
+            
+            if ($data && isset($data['list'])) {
+                // Filter out the data for the next five days starting from tomorrow
+                $nextFiveDaysData = array();
+                $tomorrow = date('Y-m-d', strtotime('+1 day'));
+
+                foreach ($data['list'] as $dayData) {
+                    $date = date('Y-m-d', $dayData['dt']);
+                    if ($date >= $tomorrow) {
+                        $nextFiveDaysData[$date][] = $dayData;
+                    }
+                }
+
+                // Display current weather information
+                $currentWeather = $data['list'][0];
+                $currentDayOfWeek = date('l', $currentWeather['dt']);
+                $currentTemperature = round($currentWeather['main']['temp'] - 273.15, 2);
+                $currentHumidity = $currentWeather['main']['humidity'];
+                $currentWindSpeed = $currentWeather['wind']['speed'];
+                $currentWeatherIcon = "http://openweathermap.org/img/wn/{$currentWeather['weather'][0]['icon']}.png";
+
+                echo "<div id='current-info'>";
+                echo "<h2>Current Weather for " . $data['city']['name'] . "</h2>";
+                echo "<p>Day: $currentDayOfWeek</p>";
+                echo "<p>Temperature: $currentTemperature °C</p>";
+                echo "<p>Humidity: $currentHumidity %</p>";
+                echo "<p>Wind Speed: $currentWindSpeed m/s</p>";
+                echo "<img src='$currentWeatherIcon' alt='Current Weather Icon'>";
+                echo "</div>";
+
+                // Display weather forecast table
+                echo "<div id='table-container'>";
+                echo "<h2>Weather forecast for " . $data['city']['name'] . "</h2>";
+                echo "<table>";
+                echo "<tr><th>Day</th><th>Average Temperature (°C)</th><th>Humidity (%)</th><th>Wind Speed (m/s)</th><th>Weather</th></tr>";
+
+                foreach ($nextFiveDaysData as $date => $dailyData) {
+                    $dayOfWeek = date('l', strtotime($date));
+                    $temperatureSum = 0;
+                    $humiditySum = 0;
+                    $windSpeedSum = 0;
+
+                    foreach ($dailyData as $dayData) {
+                        $temperatureSum += ($dayData['main']['temp'] - 273.15);
+                        $humiditySum += $dayData['main']['humidity'];
+                        $windSpeedSum += $dayData['wind']['speed'];
+                    }
+
+                    $averageTemperature = round($temperatureSum / count($dailyData), 2);
+                    $averageHumidity = round($humiditySum / count($dailyData), 2);
+                    $averageWindSpeed = round($windSpeedSum / count($dailyData), 2);
+                    $weatherIcon = "http://openweathermap.org/img/wn/{$dailyData[0]['weather'][0]['icon']}.png";
+
+                    echo "<tr>";
+                    echo "<td>{$dayOfWeek}</td>";
+                    echo "<td>{$averageTemperature}</td>";
+                    echo "<td>{$averageHumidity}</td>";
+                    echo "<td>{$averageWindSpeed}</td>";
+                    echo "<td><img src='{$weatherIcon}' alt='Weather Icon'></td>";
+                    echo "</tr>";
+                }
+
+                echo "</table>";
+                echo "</div>";
+            } else {
+                echo "Error: Weather data not available.";
+            }
+        }
+    }
+    ?>
+n6134fabc0c4a23e6eac7bddae4047f9a
   </body>
 </html>
