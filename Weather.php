@@ -19,6 +19,9 @@
        "hPa<br> ";
        $weather .="<b>Wind Speed : </b>" .$weatherArray['wind']['speed'].
        "meter/sec<br> ";
+       $weatherIconCode = $weatherArray['weather'][0]['icon'];
+       $weatherIconUrl = "http://openweathermap.org/img/wn/{$weatherIconCode}.png";
+       $weather .= "<img src=\"$weatherIconUrl\" alt=\"weather Icon\" >";
         }
         else{
           $error ="Your city name is not valid";
